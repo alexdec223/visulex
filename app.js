@@ -1,10 +1,11 @@
 /* Visulex Reader (phone web app)
-   Camera -> crop the reading box -> Tesseract.js OCR on the phone ->
+   Camera -> sharpest of a few frames -> crop the reading box ->
+   PaddleOCR (PP-OCRv4 detection + English recognition) on the phone ->
    phone's own voice reads it, highlighting each word as it is spoken.
    No photo leaves the phone. */
 
 const $ = (id) => document.getElementById(id);
-const MIN_CONFIDENCE = 55;
+const MIN_CONFIDENCE = 50;
 const TARGET_WIDTH = 1600;        // crop is scaled to about this width for OCR
 
 let stream = null;
@@ -157,45 +158,14 @@ function drawPhoto() {
 
 function loadWorker() {
   if (workerReady) return workerReady;
-  workerReady = (async () => {
-    worker = await Tesseract.createWorker("eng", 1, {
-      logger: (m) => {
-        if (m.status && m.progress !== undefined && m.status.includes("load")) {
-          status(`Loading the reader… ${Math.round(m.progress * 100)}%`);
-        }
-      },
-    });
-    await worker.setParameters({ preserve_interword_spaces: "1" });
-    return worker;
-  })();
+  worker = new PaddleOCR("");
+  workerReady = worker.load((f) => status(`Loading the reader… ${Math.round(f * 100)}%`)).then(() => worker);
+  workerReady.catch(() => { workerReady = null; });
   return workerReady;
 }
 
-// Greyscale and stretch contrast: helps Tesseract on phone photos.
-function prepare(canvas) {
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const d = img.data;
-  const hist = new Uint32Array(256);
-  for (let i = 0; i < d.length; i += 4) {
-    const g = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) | 0;
-    d[i] = g; hist[g]++;
-  }
-  const total = d.length / 4;
-  let lo = 0, hi = 255, acc = 0;
-  for (; lo < 255; lo++) { acc += hist[lo]; if (acc > total * 0.01) break; }
-  acc = 0;
-  for (; hi > 0; hi--) { acc += hist[hi]; if (acc > total * 0.01) break; }
-  const range = Math.max(hi - lo, 1);
-  for (let i = 0; i < d.length; i += 4) {
-    const v = Math.max(0, Math.min(255, ((d[i] - lo) * 255) / range));
-    d[i] = d[i + 1] = d[i + 2] = v;
-  }
-  ctx.putImageData(img, 0, 0);
-}
-
 function readingOrder(list) {
-  // Tesseract already returns words line by line; keep that but drop noise.
+  // The OCR returns words in reading order; drop low confidence noise.
   return list.filter((w) => w.confidence >= MIN_CONFIDENCE && /[A-Za-z0-9]/.test(w.text));
 }
 
@@ -204,10 +174,11 @@ async function recognise(sourceCanvas) {
   work.width = sourceCanvas.width;
   work.height = sourceCanvas.height;
   work.getContext("2d").drawImage(sourceCanvas, 0, 0);
-  prepare(work);
+  const started = performance.now();
   const w = await loadWorker();
-  const { data } = await w.recognize(work);
-  return readingOrder(data.words || []);
+  const { words: found } = await w.recognize(work);
+  console.log(`OCR ${Math.round(performance.now() - started)} ms, ${found.length} words`);
+  return readingOrder(found);
 }
 
 /* ---------------- camera ---------------- */
@@ -329,11 +300,47 @@ $("sampleBtn").addEventListener("click", async () => {
   readCanvas(c);
 });
 
-$("readBtn").addEventListener("click", () => {
+// Sharpness of a capture: variance of a simple Laplacian on a small greyscale copy.
+function sharpness(canvas) {
+  const w = 320, h = Math.max(8, Math.round((canvas.height / canvas.width) * 320));
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(canvas, 0, 0, w, h);
+  const d = ctx.getImageData(0, 0, w, h).data;
+  const g = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) g[i] = d[i * 4] * 0.299 + d[i * 4 + 1] * 0.587 + d[i * 4 + 2] * 0.114;
+  let sum = 0, sum2 = 0, n = 0;
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const i = y * w + x;
+    const l = 4 * g[i] - g[i - 1] - g[i + 1] - g[i - w] - g[i + w];
+    sum += l; sum2 += l * l; n++;
+  }
+  return sum2 / n - (sum / n) ** 2;
+}
+
+// Hand held phones shake: take a few frames and keep the sharpest.
+async function captureBest(frames = 4, gapMs = 90) {
+  let best = null, bestScore = -1;
+  for (let k = 0; k < frames; k++) {
+    if (k) await new Promise((r) => setTimeout(r, gapMs));
+    const c = captureBox();
+    const s = sharpness(c);
+    if (s > bestScore) { bestScore = s; best = c; }
+  }
+  return best;
+}
+
+$("readBtn").addEventListener("click", async () => {
   unlockSpeech();
   const video = $("video");
   if (!video.videoWidth) return;
-  readCanvas(captureBox());
+  $("readBtn").disabled = true;
+  status("Hold still…");
+  const shot = await captureBest();
+  $("readBtn").disabled = false;
+  status("Line up some text, then tap Read");
+  readCanvas(shot);
 });
 
 $("againBtn").addEventListener("click", () => {
