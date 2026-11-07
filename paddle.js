@@ -22,16 +22,21 @@ class PaddleOCR {
     if (!res.ok) throw new Error(`Could not load ${path}`);
     const total = Number(res.headers.get("content-length")) || 0;
     if (!res.body || !total) return new Uint8Array(await res.arrayBuffer());
+    // GitHub Pages compresses files, so content-length can be smaller than
+    // the real file. Collect the pieces, then join them.
     const reader = res.body.getReader();
-    const out = new Uint8Array(total);
+    const parts = [];
     let got = 0;
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
-      out.set(value, got);
+      parts.push(value);
       got += value.length;
-      if (onProgress) onProgress(offset + share * (got / total));
+      if (onProgress) onProgress(offset + share * Math.min(1, got / total));
     }
+    const out = new Uint8Array(got);
+    let at = 0;
+    for (const p of parts) { out.set(p, at); at += p.length; }
     return out;
   }
 
