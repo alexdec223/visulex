@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Visulex Reader</title>
+  <meta name="description" content="Point your phone at text, tap Read, and hear it read aloud with each word highlighted.">
+  <meta name="theme-color" content="#14161c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Visulex">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Start screen: one tap starts the camera and unlocks speech on iPhone -->
+  <section id="start" class="screen active">
+    <div class="start-inner">
+      <img src="icon-192.png" alt="" class="logo">
+      <h1>Visulex Reader</h1>
+      <p class="lead">Point your phone at printed text, tap <strong>Read</strong>, and hear it read aloud with each word highlighted.</p>
+      <button id="startBtn" class="big">Start camera</button>
+      <button id="sampleBtn" class="link">No camera? Try a sample page</button>
+      <p class="small">Everything happens on your phone. Photos are never uploaded.</p>
+    </div>
+  </section>
+
+  <!-- Camera screen -->
+  <section id="camera" class="screen">
+    <video id="video" playsinline muted autoplay></video>
+    <div class="shade"></div>
+    <div id="frame" class="frame"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span></div>
+    <div class="hint" id="hint">Fit the text inside the box</div>
+    <div class="bar">
+      <div id="status" class="status">Loading the reader…</div>
+      <button id="readBtn" class="big read" disabled>Read</button>
+    </div>
+  </section>
+
+  <!-- Result screen: the captured text with word highlighting -->
+  <section id="result" class="screen">
+    <div class="photo-wrap"><canvas id="photo"></canvas></div>
+    <div id="caption" class="caption" aria-live="polite"></div>
+    <div class="bar row">
+      <button id="backBtn" class="ghost">Scan</button>
+      <button id="againBtn" class="ghost">Again</button>
+      <button id="stopBtn" class="ghost">Stop</button>
+    </div>
+  </section>
+
+  <canvas id="work" hidden></canvas>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
