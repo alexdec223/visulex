@@ -1,6 +1,6 @@
 // Keeps the app and the OCR engine on the phone after the first visit,
 // so it still opens without internet.
-const CACHE = "visulex-v3";
+const CACHE = "visulex-v4";
 const SHELL = ["./", "index.html", "style.css", "app.js", "paddle.js", "sample.jpg", "icon-192.png", "manifest.webmanifest"];  // models are cached the first time the app loads them
 
 self.addEventListener("install", (e) => {

@@ -164,6 +164,12 @@ function loadWorker() {
   return workerReady;
 }
 
+// Ready message, with the camera resolution so it is easy to check.
+function readyText() {
+  const v = $("video");
+  return v.videoWidth ? `Line up some text, then tap Read · ${v.videoWidth}×${v.videoHeight}` : "Line up some text, then tap Read";
+}
+
 function readingOrder(list) {
   // The OCR returns words in reading order; drop low confidence noise.
   return list.filter((w) => w.confidence >= MIN_CONFIDENCE && /[A-Za-z0-9]/.test(w.text));
@@ -188,7 +194,7 @@ async function startCamera() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
-      video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      video: { facingMode: { ideal: "environment" }, width: { ideal: 3840 }, height: { ideal: 2160 } },  // more pixels per letter = better OCR
     });
   } catch (err) {
     alert("The camera could not start. Please allow camera access for this site and try again.\n\n" + err.message);
@@ -199,6 +205,7 @@ async function startCamera() {
   await video.play().catch(() => {});
   const track = stream.getVideoTracks()[0];
   try { await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch (e) { /* not supported */ }
+  console.log(`Camera ${video.videoWidth} x ${video.videoHeight}`);
   return true;
 }
 
@@ -283,7 +290,7 @@ async function readCanvas(canvas) {
 
 $("startBtn").addEventListener("click", async () => {
   unlockSpeech();
-  loadWorker().then(() => { status("Line up some text, then tap Read"); $("readBtn").disabled = false; })
+  loadWorker().then(() => { status(readyText()); $("readBtn").disabled = false; })
     .catch(() => status("The reader could not load. Check the internet and reload the page."));
   const ok = await startCamera();
   if (ok) show("camera");
@@ -356,7 +363,7 @@ $("stopBtn").addEventListener("click", () => stopSpeech());
 $("backBtn").addEventListener("click", async () => {
   stopSpeech();
   if (stream) show("camera");
-  else if (await startCamera()) { show("camera"); loadWorker().then(() => { $("readBtn").disabled = false; status("Line up some text, then tap Read"); }); }
+  else if (await startCamera()) { show("camera"); loadWorker().then(() => { $("readBtn").disabled = false; status(readyText()); }); }
   else show("start");
 });
 
