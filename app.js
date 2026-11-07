@@ -141,13 +141,13 @@ function drawPhoto() {
     const x = b.x0 * photoScale, y = b.y0 * photoScale;
     const width = (b.x1 - b.x0) * photoScale, height = (b.y1 - b.y0) * photoScale;
     if (n === currentWord) {
-      ctx.fillStyle = "rgba(255, 213, 0, 0.45)";
+      ctx.fillStyle = "rgba(80, 102, 120, 0.35)";
       ctx.fillRect(x - 3, y - 3, width + 6, height + 6);
-      ctx.strokeStyle = "#ffd500";
+      ctx.strokeStyle = "#506678";
       ctx.lineWidth = 4;
       ctx.strokeRect(x - 3, y - 3, width + 6, height + 6);
     } else {
-      ctx.strokeStyle = n < currentWord ? "rgba(120,120,120,0.8)" : "rgba(80, 200, 70, 0.9)";
+      ctx.strokeStyle = n < currentWord ? "rgba(120,120,120,0.8)" : "rgba(80, 102, 120, 0.6)";
       ctx.lineWidth = 2;
       ctx.strokeRect(x - 2, y - 2, width + 4, height + 4);
     }

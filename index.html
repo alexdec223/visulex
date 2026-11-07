@@ -5,24 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Visulex Reader</title>
   <meta name="description" content="Point your phone at text, tap Read, and hear it read aloud with each word highlighted.">
-  <meta name="theme-color" content="#14161c">
+  <meta name="theme-color" content="#f1ece6">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Visulex">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/dm-sans@5.1.0/index.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <!-- Start screen: one tap starts the camera and unlocks speech on iPhone -->
   <section id="start" class="screen active">
     <div class="start-inner">
-      <img src="icon-192.png" alt="" class="logo">
-      <h1>Visulex Reader</h1>
-      <p class="lead">Point your phone at printed text, tap <strong>Read</strong>, and hear it read aloud with each word highlighted.</p>
+      <p class="label">Final Year Project · 2026</p>
+      <h1 class="wordmark">visulex</h1>
+      <hr class="accent-rule">
+      <p class="lead">Point your phone at printed text, tap Read, and hear it read aloud.</p>
       <button id="startBtn" class="big">Start camera</button>
       <button id="sampleBtn" class="link">No camera? Try a sample page</button>
-      <p class="small">Everything happens on your phone. Photos are never uploaded.</p>
+      <p class="small">Everything happens on your phone. Photos are never uploaded.<br>Alexander de Castella · Swinburne University of Technology</p>
     </div>
   </section>
 
@@ -31,7 +33,7 @@
     <video id="video" playsinline muted autoplay></video>
     <div class="shade"></div>
     <div id="frame" class="frame"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span></div>
-    <div class="hint" id="hint">Fit the text inside the box</div>
+    <div class="hint" id="hint">Move close so the text fills the box</div>
     <div class="bar">
       <div id="status" class="status">Loading the reader…</div>
       <button id="readBtn" class="big read" disabled>Read</button>
