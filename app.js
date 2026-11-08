@@ -376,7 +376,14 @@ $("againBtn").addEventListener("click", () => {
   speakWords(words, mySession);
 });
 
-$("stopBtn").addEventListener("click", () => stopSpeech());
+// Stop while reading; once finished the button says Done and goes home.
+$("stopBtn").addEventListener("click", () => {
+  const finished = $("stopBtn").textContent === "Done";
+  stopSpeech();
+  if (!finished) return;
+  if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }  // camera off at home
+  show("start");
+});
 
 $("backBtn").addEventListener("click", async () => {
   stopSpeech();
