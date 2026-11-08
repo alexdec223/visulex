@@ -74,7 +74,7 @@ button.ghost.primary { background: var(--accent); color: var(--accent-ink); bord
 .sheet { position: fixed; inset: 0; z-index: 10; background: var(--page); display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); visibility: hidden; }
 .sheet.open { transform: none; visibility: visible; }
 .sheet-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: calc(12px + env(safe-area-inset-top)) 20px 12px; border-bottom: 1px solid var(--rule); }
-.done { background: none; color: var(--accent); font-size: 17px; font-weight: 600; padding: 8px 0 8px 16px; }
+.done-btn { background: none; color: var(--accent); font-size: 17px; font-weight: 600; padding: 8px 0 8px 16px; }
 .sheet-body { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 26px 20px calc(30px + env(safe-area-inset-bottom)); max-width: 560px; width: 100%; margin: 0 auto; }
 .sheet-title { font-size: 32px; font-weight: 500; letter-spacing: -0.03em; line-height: 1.1; margin: 0 0 10px; }
 .sheet-lead { font-size: 14px; color: var(--muted); line-height: 1.55; margin: 0 0 22px; }
