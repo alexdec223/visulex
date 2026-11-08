@@ -23,7 +23,7 @@
       <hr class="accent-rule">
       <p class="lead">Point your phone at printed text, tap Read, and hear it read aloud.</p>
       <button id="startBtn" class="big">Start camera</button>
-      <button id="sampleBtn" class="link">No camera? Try a sample page</button>
+      <div class="links"><button id="sampleBtn" class="link">Try a sample page</button><button class="link" data-open-settings>Voice and reading settings</button></div>
       <p class="small">Everything happens on your phone. Photos are never uploaded.<br>Alexander de Castella · Swinburne University of Technology</p>
     </div>
   </section>
@@ -33,6 +33,7 @@
     <video id="video" playsinline muted autoplay></video>
     <div class="shade"></div>
     <div id="frame" class="frame"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span></div>
+    <button class="icon-btn on-dark" data-open-settings aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
     <div class="hint" id="hint">Move close so the text fills the box</div>
     <div class="bar">
       <div id="status" class="status">Loading the reader…</div>
@@ -48,6 +49,50 @@
       <button id="backBtn" class="ghost">Scan</button>
       <button id="againBtn" class="ghost">Again</button>
       <button id="stopBtn" class="ghost">Stop</button>
+      <button class="ghost icon" data-open-settings aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+    </div>
+  </section>
+
+  <!-- Settings: voice, speed, volume and text size, with a live preview -->
+  <section id="settings" class="sheet" aria-hidden="true" aria-label="Settings">
+    <header class="sheet-head">
+      <p class="label">Settings</p>
+      <button id="settingsDone" class="done">Done</button>
+    </header>
+    <div class="sheet-body">
+      <h2 class="sheet-title">Your reading voice</h2>
+      <p class="sheet-lead">Changes are saved on this phone. Play the preview to hear and see them.</p>
+
+      <div class="preview">
+        <div id="previewText" class="caption preview-text"></div>
+        <button id="previewBtn" class="preview-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="play" d="M8 5.5v13l10.5-6.5z"/><path class="stop" d="M7 7h10v10H7z"/></svg><span>Play preview</span></button>
+      </div>
+
+      <div class="group">
+        <div class="row-head"><span class="label">Voice</span></div>
+        <div class="select-wrap"><select id="voiceSelect" aria-label="Voice"></select></div>
+      </div>
+
+      <div class="group">
+        <div class="row-head"><span class="label">Speed</span><span id="rateVal" class="val"></span></div>
+        <input type="range" id="rateRange" min="0.5" max="1.5" step="0.05" aria-label="Speed">
+        <div class="ticks"><span>Slower</span><span>Normal</span><span>Faster</span></div>
+      </div>
+
+      <div class="group">
+        <div class="row-head"><span class="label">Volume</span><span id="volumeVal" class="val"></span></div>
+        <input type="range" id="volumeRange" min="0.1" max="1" step="0.05" aria-label="Volume">
+        <div class="ticks"><span>Quiet</span><span>Full</span></div>
+        <p class="note">Works with your phone's volume buttons.</p>
+      </div>
+
+      <div class="group">
+        <div class="row-head"><span class="label">Text size</span><span id="sizeVal" class="val"></span></div>
+        <input type="range" id="sizeRange" min="18" max="36" step="1" aria-label="Text size">
+        <div class="ticks"><span class="a-small">A</span><span class="a-big">A</span></div>
+      </div>
+
+      <button id="resetBtn" class="link reset">Reset to defaults</button>
     </div>
   </section>
 

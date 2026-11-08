@@ -26,15 +26,32 @@ function status(text) { $("status").textContent = text; }
 
 /* ---------------- speech ---------------- */
 
-function pickVoice() {
-  const voices = speechSynthesis.getVoices();
-  const score = (v) =>
-    (/karen/i.test(v.name) ? 8 : 0) +
+/* Reader settings, kept on this phone between visits. */
+const DEFAULTS = { voiceURI: "", rate: 1.0, volume: 1.0, textSize: 25 };
+let settings = { ...DEFAULTS };
+try { Object.assign(settings, JSON.parse(localStorage.getItem("visulex-settings") || "{}")); } catch (e) { /* private mode */ }
+function saveSettings() {
+  try { localStorage.setItem("visulex-settings", JSON.stringify(settings)); } catch (e) { /* private mode */ }
+}
+
+function englishVoices() {
+  if (!("speechSynthesis" in window)) return [];
+  const seen = new Set();
+  return speechSynthesis.getVoices().filter((v) => /^en/i.test(v.lang) && !seen.has(v.voiceURI) && seen.add(v.voiceURI));
+}
+
+function voiceScore(v) {
+  return (/karen/i.test(v.name) ? 8 : 0) +
     (v.lang === "en-AU" ? 4 : 0) +
     (/en[-_]GB/i.test(v.lang) ? 2 : 0) +
-    (/^en/i.test(v.lang) ? 1 : 0) +
     (/premium|enhanced/i.test(v.name) ? 1 : 0);
-  voice = voices.slice().sort((a, b) => score(b) - score(a))[0] || null;
+}
+
+function pickVoice() {
+  const voices = englishVoices();
+  voice = voices.find((v) => v.voiceURI === settings.voiceURI) ||
+    voices.slice().sort((a, b) => voiceScore(b) - voiceScore(a))[0] || null;
+  if (typeof fillVoiceList === "function") fillVoiceList();
 }
 if ("speechSynthesis" in window) {
   pickVoice();
@@ -58,7 +75,7 @@ function stopSpeech() {
 
 /* Speaks the words one sentence at a time. Uses the voice's own word
    timing when the phone provides it; otherwise estimates it. */
-function speakWords(list, mySession) {
+function speakWords(list, mySession, onWord = markWord) {
   const sentences = [];
   let current = [];
   list.forEach((w, i) => {
@@ -70,7 +87,7 @@ function speakWords(list, mySession) {
   let s = 0;
   const next = () => {
     if (mySession !== session) return;
-    if (s >= sentences.length) { markWord(list.length, true); return; }
+    if (s >= sentences.length) { onWord(list.length, true); return; }
     const idx = sentences[s++];
     const text = idx.map((i) => list[i].text).join(" ");
     const starts = [];
@@ -79,7 +96,8 @@ function speakWords(list, mySession) {
 
     const u = new SpeechSynthesisUtterance(text);
     if (voice) { u.voice = voice; u.lang = voice.lang; } else { u.lang = "en-AU"; }
-    u.rate = 1.0;
+    u.rate = settings.rate;
+    u.volume = settings.volume;
 
     let gotBoundary = false;
     let timers = [];
@@ -90,10 +108,10 @@ function speakWords(list, mySession) {
       timers.forEach(clearTimeout);
       let k = 0;
       while (k + 1 < starts.length && starts[k + 1] <= e.charIndex) k++;
-      markWord(idx[k]);
+      onWord(idx[k]);
     };
     u.onstart = () => {
-      markWord(idx[0]);
+      onWord(idx[0]);
       // Fallback: if no word timing arrives, estimate it from word length.
       setTimeout(() => {
         if (gotBoundary || mySession !== session) return;
@@ -101,7 +119,7 @@ function speakWords(list, mySession) {
         let t = 0;
         idx.forEach((i, n) => {
           const at = t;
-          timers.push(setTimeout(() => { if (mySession === session && !gotBoundary) markWord(i); }, at * 1000));
+          timers.push(setTimeout(() => { if (mySession === session && !gotBoundary) onWord(i); }, at * 1000));
           t += (list[i].text.length + 1.5) * perChar;
         });
       }, 350);
@@ -366,6 +384,103 @@ $("backBtn").addEventListener("click", async () => {
   else if (await startCamera()) { show("camera"); loadWorker().then(() => { $("readBtn").disabled = false; status(readyText()); }); }
   else show("start");
 });
+
+/* ---------------- settings ---------------- */
+
+const REGIONS = { "en-AU": "Australia", "en-GB": "United Kingdom", "en-IE": "Ireland", "en-NZ": "New Zealand",
+  "en-US": "United States", "en-ZA": "South Africa", "en-IN": "India", "en-SC": "Scotland" };
+// Novelty voices on Apple devices: not suitable for reading.
+const NOVELTY = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Fred|Junior|Kathy|Ralph)\b/i;
+const PREVIEW_TEXT = "Reading should feel easy, calm and possible for every student.";
+const previewWords = PREVIEW_TEXT.split(" ").map((text) => ({ text }));
+
+function regionOf(v) { return REGIONS[v.lang.replace("_", "-")] || "Other English"; }
+
+function fillVoiceList() {
+  const sel = $("voiceSelect");
+  const voices = englishVoices().filter((v) => !NOVELTY.test(v.name));
+  if (!voices.length) { sel.innerHTML = "<option>Default voice</option>"; sel.disabled = true; return; }
+  sel.disabled = false;
+  const order = ["Australia", "United Kingdom", "Ireland", "New Zealand", "Scotland", "United States", "South Africa", "India", "Other English"];
+  const groups = {};
+  voices.forEach((v) => (groups[regionOf(v)] = groups[regionOf(v)] || []).push(v));
+  sel.innerHTML = order.filter((g) => groups[g]).map((g) =>
+    `<optgroup label="${g}">` +
+    groups[g].sort((a, b) => voiceScore(b) - voiceScore(a) || a.name.localeCompare(b.name))
+      .map((v) => `<option value="${escapeHtml(v.voiceURI)}">${escapeHtml(v.name)}</option>`).join("") +
+    "</optgroup>").join("");
+  if (voice) sel.value = voice.voiceURI;
+}
+
+function setFill(input) {
+  const f = (input.value - input.min) / (input.max - input.min);
+  input.style.setProperty("--fill", `${(f * 100).toFixed(1)}%`);
+}
+
+function applySettings() {
+  document.documentElement.style.setProperty("--caption-size", `${settings.textSize}px`);
+  $("rateRange").value = settings.rate;
+  $("volumeRange").value = settings.volume;
+  $("sizeRange").value = settings.textSize;
+  ["rateRange", "volumeRange", "sizeRange"].forEach((id) => setFill($(id)));
+  const r = settings.rate;
+  $("rateVal").textContent = `${r.toFixed(2).replace(/0$/, "")}×${Math.abs(r - 1) < 0.001 ? " · Normal" : ""}`;
+  $("volumeVal").textContent = `${Math.round(settings.volume * 100)}%`;
+  $("sizeVal").textContent = `${settings.textSize} px`;
+}
+
+function previewWord(i, finished = false) {
+  document.querySelectorAll("#previewText .w").forEach((el, n) => {
+    el.classList.toggle("now", n === i && !finished);
+    el.classList.toggle("done", n < i && !finished);
+  });
+  $("previewBtn").classList.toggle("playing", !finished);
+  $("previewBtn").lastElementChild.textContent = finished ? "Play preview" : "Stop preview";
+}
+
+function playPreview() {
+  stopSpeech();
+  previewWord(-1);
+  speakWords(previewWords, session, previewWord);
+}
+
+function openSettings() {
+  unlockSpeech();
+  stopSpeech();
+  fillVoiceList();
+  applySettings();
+  $("previewText").innerHTML = previewWords.map((w) => `<span class="w">${escapeHtml(w.text)}</span>`).join(" ");
+  previewWord(-1, true);
+  $("settings").classList.add("open");
+  $("settings").setAttribute("aria-hidden", "false");
+}
+
+function closeSettings() {
+  stopSpeech();
+  previewWord(-1, true);
+  $("settings").classList.remove("open");
+  $("settings").setAttribute("aria-hidden", "true");
+}
+
+document.querySelectorAll("[data-open-settings]").forEach((b) => b.addEventListener("click", openSettings));
+$("settingsDone").addEventListener("click", closeSettings);
+$("previewBtn").addEventListener("click", () => {
+  if ($("previewBtn").classList.contains("playing")) { stopSpeech(); previewWord(-1, true); } else playPreview();
+});
+$("voiceSelect").addEventListener("change", (e) => {
+  settings.voiceURI = e.target.value;
+  pickVoice(); saveSettings(); playPreview();
+});
+[["rateRange", "rate"], ["volumeRange", "volume"], ["sizeRange", "textSize"]].forEach(([id, key]) => {
+  $(id).addEventListener("input", (e) => { settings[key] = Number(e.target.value); applySettings(); });
+  // Hear the change when the slider is let go (text size shows straight away).
+  $(id).addEventListener("change", () => { saveSettings(); if (key !== "textSize") playPreview(); });
+});
+$("resetBtn").addEventListener("click", () => {
+  settings = { ...DEFAULTS };
+  saveSettings(); pickVoice(); applySettings(); playPreview();
+});
+applySettings();
 
 // Start loading the OCR engine straight away so the first Read is quick.
 window.addEventListener("load", () => { loadWorker().catch(() => {}); });
